@@ -27,7 +27,14 @@ _TODO: screenshot_
 
 ## Step 2: Agent Loop for AIME
 
-_TODO_
+### Implementation
+
+The agent reuses the baseline's loop (`Agent.run` in `src/agent.py`). `src/aime.py` only configures it for AIME through `make_agent(model, use_tool)`:
+
+1. **Initialize with a math system prompt.** Each run starts a fresh conversation with a system message and the problem as the user message. The prompt with the tool says the agent is solving AIME problems, asks it to reason step by step, encourages Python for exact calculations, enumeration and verification of the final answer, lists the available modules, notes that answers are integers from 0 to 999 and asks for the answer in `\boxed{}`.
+2. **Loop for up to `max_steps`.** Each step is one model call: 20 with the tool and 1 without it. The loop ends when the model replies without tool calls, and that reply is the final answer. On the last step the model is asked to give its final answer and cannot call tools (see [Changes to the Baseline](#changes-to-the-baseline)).
+3. **Support tool calling.** With the tool, the `ToolRegistry` contains `execute_python_code` and its schema is sent on every call. Each tool call the model makes is executed, and its JSON result is appended as a `tool` message with the matching `tool_call_id`, so the model sees the output on the next step. Without the tool, the registry is empty and no tools are sent.
+4. **Track reasoning steps and conversation history.** `Agent.run` returns an `AgentResult` with the final answer, a status (`completed`, `incomplete` or `max_steps`), the number of steps and the full message history, including every tool call and tool result. `summarize()` reports the steps and the number of tool calls for each run, and `format_trace()` prints a readable trace (`python -m src.aime --id 60`).
 
 ---
 
